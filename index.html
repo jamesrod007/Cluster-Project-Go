@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Progress Paradox</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #d4d0c8;
+      color: #000;
+      min-height: 100vh;
+    }
+
+    .screen {
+      display: none;
+      min-height: 100vh;
+    }
+    .screen.active {
+      display: block;
+    }
+
+    #start-screen {
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    #start-screen h1 {
+      font-size: 2rem;
+      margin-bottom: 6px;
+    }
+
+    #start-screen .subtitle {
+      font-size: 0.95rem;
+      color: #444;
+      font-style: italic;
+      margin-bottom: 24px;
+    }
+
+    .story-box {
+      background: #e8e8e8;
+      border: 2px inset #999;
+      padding: 20px 28px;
+      max-width: 520px;
+      margin: 0 auto 24px auto;
+      text-align: left;
+      line-height: 1.7;
+    }
+
+    .story-box p {
+      margin-bottom: 10px;
+    }
+    .story-box p:last-child {
+      margin-bottom: 0;
+    }
+
+    .version-note {
+      font-size: 0.85rem;
+      color: #555;
+      max-width: 460px;
+      margin: 0 auto 20px auto;
+      line-height: 1.5;
+    }
+
+    .version-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .version-btn {
+      background: #4466cc;
+      color: white;
+      border: 2px outset #6688ee;
+      padding: 12px 24px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .version-btn:active {
+      border-style: inset;
+    }
+
+    .toolbar {
+      background: #c0c0c0;
+      border: 1px inset #999;
+      padding: 6px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.82rem;
+    }
+
+    .chip {
+      background: #e8e8e8;
+      border: 1px inset #aaa;
+      padding: 3px 10px;
+      font-size: 0.82rem;
+    }
+
+    #progress-row {
+      background: #d4d0c8;
+      padding: 8px 16px;
+      border-bottom: 1px solid #999;
+    }
+
+    .bar-label {
+      font-size: 0.78rem;
+      margin-bottom: 2px;
+    }
+
+    .bar-track {
+      background: #aaa;
+      border: 1px inset #888;
+      height: 12px;
+      width: 100%;
+      margin-bottom: 6px;
+    }
+    .bar-fill {
+      height: 100%;
+      background: #4466cc;
+    }
+
+    #main-area {
+      display: flex;
+      min-height: calc(100vh - 120px);
+    }
+
+    #action-panel {
+      width: 260px;
+      min-width: 220px;
+      background: #c8c8c8;
+      border-right: 2px inset #999;
+      padding: 14px 12px;
+    }
+
+    #action-panel h2 {
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .btn {
+      background: #4466cc;
+      color: white;
+      border: 2px outset #6688ee;
+      padding: 10px 12px;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: bold;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .btn:active {
+      border-style: inset;
+    }
+    .btn small {
+      display: block;
+      font-weight: normal;
+      font-size: 0.74rem;
+      color: #cce;
+      margin-top: 2px;
+    }
+
+    #v1-goal-box {
+      background: #fffacc;
+      border: 2px inset #ccaa00;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      margin-top: 10px;
+      display: none;
+    }
+
+    #v2-msg-box {
+      background: #e8f0e8;
+      border: 2px inset #669966;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      font-style: italic;
+      margin-top: 10px;
+      display: none;
+    }
+
+    #log-panel {
+      flex: 1;
+      padding: 14px 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #log-panel h2 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    #log-box {
+      flex: 1;
+      background: white;
+      border: 2px inset #999;
+      padding: 10px 14px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      line-height: 1.7;
+    }
+
+    .log-line { padding: 2px 0; }
+    .log-line.bad { color: #cc0000; }
+    .log-line.good { color: #006600; }
+    .log-line.event { color: #885500; font-style: italic; }
+    .log-line.purpose { color: #224422; font-weight: bold; font-style: italic; }
+    .log-line.reward {
+      background: #fffacc;
+      border-left: 3px solid #ccaa00;
+      padding: 4px 8px;
+      margin: 2px 0;
+      color: #554400;
+      font-weight: bold;
+    }
+
+    #boredom-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #e0e0e0;
+      border: 2px outset #aaa;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      z-index: 100;
+      display: none;
+    }
+    #boredom-btn:active { border-style: inset; }
+
+    #boredom-toast {
+      position: fixed;
+      bottom: 62px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 101;
+      pointer-events: none;
+    }
+    #boredom-toast.show { opacity: 1; }
+
+    #end-screen {
+      padding: 40px 20px 60px;
+      text-align: center;
+    }
+
+    #end-card {
+      background: #e8e8e8;
+      border: 2px inset #999;
+      padding: 28px 32px;
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: left;
+    }
+
+    #end-card h1 { font-size: 1.6rem; margin-bottom: 6px; }
+
+    #end-tagline {
+      font-style: italic;
+      color: #444;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    #end-story-text {
+      line-height: 1.7;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .end-section { margin-bottom: 18px; }
+    .end-section h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .stat-box {
+      background: white;
+      border: 1px inset #bbb;
+      padding: 6px 10px;
+      font-size: 0.83rem;
+    }
+    .stat-box span { font-weight: bold; }
+
+    .boredom-list {
+      background: white;
+      border: 1px inset #bbb;
+      padding: 8px 12px;
+      font-size: 0.83rem;
+      line-height: 1.8;
+    }
+
+    .end-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+    #copy-btn {
+      background: #4466cc;
+      color: white;
+      border: 2px outset #6688ee;
+      padding: 9px 20px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #copy-btn:active { border-style: inset; }
+
+    #restart-btn {
+      background: #c0c0c0;
+      border: 2px outset #aaa;
+      padding: 9px 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #restart-btn:active { border-style: inset; }
+
+    #copy-status { font-size: 0.8rem; color: green; margin-top: 6px; height: 18px; }
+
+    @media (max-width: 580px) {
+      #main-area { flex-direction: column; }
+      #action-panel { width: 100%; border-right: none; border-bottom: 2px inset #999; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="start-screen" class="screen active">
+  <h1>The Progress Paradox</h1>
+  <p class="subtitle">A research game about motivation, boredom, and purpose.</p>
+
+  <div class="story-box">
+    <p>You are a villager who has learned that your village will soon be attacked by zombies.</p>
+    <p>The only possible chance you have of saving everyone is to find the crystals buried within a mountain that are capable of creating a protective shield around the village.</p>
+    <p>You have been selected to go on the journey to obtain the crystals.</p>
+    <p>You leave in the morning with only a small pack of food and an old pair of boots. The crystal is 100 miles away. The zombies are coming.</p>
+  </div>
+
+  <p class="version-note">
+    Both versions have the same mission and gameplay.<br />
+    The difference is how progress is shown. Play the version your researcher assigned to you.
+  </p>
+
+  <div class="version-buttons">
+    <button class="version-btn" onclick="startGame(1)">Version 1</button>
+    <button class="version-btn" onclick="startGame(2)">Version 2</button>
+  </div>
+</div>
+
+
+<div id="game-screen" class="screen">
+
+  <div class="toolbar">
+    <div class="chip" id="chip-ver">Version ?</div>
+    <div class="chip">Day: <b id="val-day">1</b></div>
+    <div class="chip">Health: <b id="val-health">100</b></div>
+    <div class="chip">Energy: <b id="val-energy">100</b></div>
+    <div class="chip">Food: <b id="val-food">10</b></div>
+    <div class="chip" id="v1-coins-chip" style="display:none;">Coins: <b id="val-coins">0</b></div>
+    <div class="chip" id="zombie-chip">Zombie Arrival: <b id="val-daysleft">150</b> days</div>
+  </div>
+
+  <div id="progress-row">
+    <div class="bar-label">Distance: <span id="dist-text">0 / 100 miles</span></div>
+    <div class="bar-track"><div class="bar-fill" id="dist-fill" style="width:0%"></div></div>
+
+    <div class="bar-label">Health: <span id="health-text">100</span></div>
+    <div class="bar-track"><div class="bar-fill" id="health-fill" style="width:100%;background:#cc4444"></div></div>
+
+    <div class="bar-label">Energy: <span id="energy-text">100</span></div>
+    <div class="bar-track"><div class="bar-fill" id="energy-fill" style="width:100%;background:#44aa44"></div></div>
+
+    <div class="bar-label">Food: <span id="food-text">10</span></div>
+    <div class="bar-track"><div class="bar-fill" id="food-fill" style="width:50%;background:#cc8800"></div></div>
+  </div>
+
+  <div id="main-area">
+    <div id="action-panel">
+      <h2>Actions</h2>
+
+      <button class="btn" onclick="doAction('walk')">
+        Walk
+        <small>Move toward the crystal. Uses energy and food.</small>
+      </button>
+
+      <button class="btn" onclick="doAction('rest')">
+        Rest
+        <small>Recover health and energy. Uses food.</small>
+      </button>
+
+      <button class="btn" onclick="doAction('forage')">
+        Forage
+        <small>Search for food. Uses energy.</small>
+      </button>
+
+      <div id="v1-goal-box">
+        <b>Next Goal:</b><br />
+        <span id="v1-goal-text">Start walking!</span>
+      </div>
+
+      <div id="v2-msg-box">
+        <span id="v2-msg-text">Your village needs you.</span>
+      </div>
+
+      <div id="v1-shop" style="display:none; margin-top:14px;">
+        <h2>Shop</h2>
+        <div id="shop-items"></div>
+      </div>
+    </div>
+
+    <div id="log-panel">
+      <h2>Journey Log</h2>
+      <div id="log-box"></div>
+    </div>
+  </div>
+</div>
+
+<button id="boredom-btn" onclick="recordBoredom()">I feel bored</button>
+<div id="boredom-toast">Boredom recorded.</div>
+
+
+<div id="end-screen" class="screen">
+  <div id="end-card">
+    <h1 id="end-title">Journey Complete</h1>
+    <p id="end-tagline"></p>
+
+    <div class="end-section" id="end-story-section" style="display:none;">
+      <p id="end-story-text"></p>
+    </div>
+
+    <div class="end-section">
+      <h3>Your Stats</h3>
+      <div class="stats-grid" id="end-stats-grid"></div>
+    </div>
+
+    <div class="end-section" id="v1-extras-section" style="display:none;">
+      <h3>Version 1 Extras</h3>
+      <div class="stats-grid" id="v1-extras-grid"></div>
+    </div>
+
+    <div class="end-section">
+      <h3>Boredom Clicks</h3>
+      <div class="boredom-list" id="end-boredom-list">None recorded.</div>
+    </div>
+
+    <div class="end-btns">
+      <button id="copy-btn" onclick="copyResults()">Copy Results</button>
+      <button id="restart-btn" onclick="restartGame()">Play Again</button>
+    </div>
+    <div id="copy-status"></div>
+  </div>
+</div>
+
+
+<script>
+
+var state = {};
+
+var FOOD_MAX = 20;
+
+var checkpoints = [
+  { pct: 20, msg: "Checkpoint! You've covered 20 miles. +5 coins!" },
+  { pct: 40, msg: "Checkpoint! Almost halfway. +5 coins!" },
+  { pct: 60, msg: "Checkpoint! 60 miles down. +5 coins!" },
+  { pct: 80, msg: "Checkpoint! So close now. +5 coins!" }
+];
+
+var upgrades = [
+  { id: 'boots',    name: 'Better Boots',   cost: 5,  desc: 'Walk further each step.' },
+  { id: 'bag',      name: 'Bigger Bag',     cost: 5,  desc: 'Forage more food at once.' },
+  { id: 'medicine', name: 'Medicine',       cost: 8,  desc: 'Rest restores more health.' },
+  { id: 'coat',     name: 'Heavy Coat',     cost: 6,  desc: 'Less damage from bad weather.' },
+  { id: 'map',      name: 'Trail Map',      cost: 7,  desc: 'Extra distance on every walk.' },
+  { id: 'strength', name: 'Strength Wrap',  cost: 6,  desc: 'Walking costs less energy.' },
+  { id: 'fire',     name: 'Fire Kit',       cost: 5,  desc: 'Rest restores more energy.' }
+];
+
+var v2msgs = [
+  "Your village needs you.",
+  "You are the last hope.",
+  "Do this for the people counting on you.",
+  "Zombies are not going to wait. Neither can you.",
+  "You must keep progressing.",
+  "Each mile you get closer.",
+  "The crystal is waiting for you.",
+  "Keep going. You are getting closer.",
+  "Moving forward is the only option.",
+  "You are driven by an undefeatable purpose.",
+  "The village is counting on you.",
+  "The zombies are closing in.",
+  "One step at a time.",
+  "Almost there. The village is waiting on you.",
+  "Continue pushing forward."
+];
+
+var events = [
+  { text: "A storm batters you through the night.", effect: function(s) { s.energy -= 10; s.health -= 6; return "Energy -10, Health -6."; }, type: "bad" },
+  { text: "You find a shortcut through the trees.", effect: function(s) { var b = rand(4,8); s.distance += b; return "Distance +" + b + "!"; }, type: "good" },
+  { text: "A wild animal attacks you.", effect: function(s) { s.health -= 14; s.energy -= 6; return "Health -14, Energy -6."; }, type: "bad" },
+  { text: "A stranger shares some food with you.", effect: function(s) { s.food = Math.min(s.food + 5, FOOD_MAX); return "Food +5."; }, type: "good" },
+  { text: "You twist your ankle badly on loose rocks.", effect: function(s) { s.health -= 10; s.energy -= 5; return "Health -10, Energy -5."; }, type: "bad" },
+  { text: "A clear night gives you a second wind.", effect: function(s) { s.energy = Math.min(s.energy + 10, 100); s.health = Math.min(s.health + 5, 100); return "Energy +10, Health +5."; }, type: "good" },
+  { text: "Heavy rain soaks through your gear.", effect: function(s) { s.energy -= 8; s.health -= 5; return "Energy -8, Health -5."; }, type: "bad" },
+  { text: "You find wild berries along the trail.", effect: function(s) { s.food = Math.min(s.food + 5, FOOD_MAX); return "Food +5."; }, type: "good" },
+  { text: "You slip on ice and hurt your knee.", effect: function(s) { s.health -= 8; return "Health -8."; }, type: "bad" },
+  { text: "The trail opens up and you pick up speed.", effect: function(s) { var b = rand(3,6); s.distance += b; return "Distance +" + b + "!"; }, type: "good" },
+  { text: "Fog rolls in. You get turned around.", effect: function(s) { s.distance -= 4; if (s.distance < 0) s.distance = 0; s.energy -= 6; return "Distance -4, Energy -6."; }, type: "bad" },
+  { text: "You rest by a warm fire and recover.", effect: function(s) { s.health = Math.min(s.health + 8, 100); s.energy = Math.min(s.energy + 8, 100); return "Health +8, Energy +8."; }, type: "good" }
+];
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getTime() {
+  var ms = Date.now() - state.startTime;
+  var totalSec = Math.floor(ms / 1000);
+  var min = Math.floor(totalSec / 60);
+  var sec = totalSec % 60;
+  if (sec < 10) sec = "0" + sec;
+  return min + ":" + sec;
+}
+
+function showScreen(id) {
+  var screens = document.querySelectorAll('.screen');
+  for (var i = 0; i < screens.length; i++) {
+    screens[i].classList.remove('active');
+  }
+  document.getElementById(id).classList.add('active');
+}
+
+function startGame(ver) {
+  state = {
+    version: ver,
+    day: 1,
+    health: 100,
+    energy: 100,
+    food: 15,
+    distance: 0,
+    coins: 0,
+    cpNum: 0,
+    journalIdx: 0,
+    lastMsg: -10,
+    totalUpgrades: 0,
+    daysLeft: 150,
+    boredLog: [],
+    startTime: Date.now(),
+    result: null,
+    lossReason: '',
+    gameOver: false,
+    boots: false,
+    bag: false,
+    medicine: false,
+    coat: false,
+    map: false,
+    strength: false,
+    fire: false
+  };
+
+  document.getElementById('log-box').innerHTML = '';
+
+  if (ver == 1) {
+    document.getElementById('chip-ver').textContent = 'Version 1: Short-Term Rewards';
+    document.getElementById('v1-coins-chip').style.display = '';
+    document.getElementById('v1-goal-box').style.display = 'block';
+    document.getElementById('v2-msg-box').style.display = 'none';
+    document.getElementById('v1-shop').style.display = 'block';
+    buildShop();
+    setLog("Your journey begins. Complete checkpoints to earn coins and buy upgrades.");
+  } else {
+    document.getElementById('chip-ver').textContent = 'Version 2: Long-Term Purpose';
+    document.getElementById('v1-coins-chip').style.display = 'none';
+    document.getElementById('v1-goal-box').style.display = 'none';
+    document.getElementById('v2-msg-box').style.display = 'block';
+    document.getElementById('v1-shop').style.display = 'none';
+    document.getElementById('v2-msg-text').textContent = v2msgs[0];
+    state.journalIdx = 1;
+    setLog("You leave your village at dawn. The crystal is 100 miles away. The zombies are coming.");
+  }
+
+  document.getElementById('boredom-btn').style.display = 'block';
+  document.getElementById('boredom-btn').disabled = false;
+  updateUI();
+  showScreen('game-screen');
+}
+
+function buildShop() {
+  var el = document.getElementById('shop-items');
+  el.innerHTML = '';
+  for (var i = 0; i < upgrades.length; i++) {
+    var u = upgrades[i];
+    var btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.id = 'shop-' + u.id;
+    btn.innerHTML = u.name + ' (' + u.cost + ' coins)<small>' + u.desc + '</small>';
+    btn.setAttribute('data-id', u.id);
+    btn.onclick = function() { buyUpgrade(this.getAttribute('data-id')); };
+    el.appendChild(btn);
+  }
+}
+
+function buyUpgrade(id) {
+  var u = null;
+  for (var i = 0; i < upgrades.length; i++) {
+    if (upgrades[i].id == id) u = upgrades[i];
+  }
+  if (!u) return;
+  if (state[id]) { setLog("You already have " + u.name + "."); return; }
+  if (state.coins < u.cost) { setLog("Not enough coins. Need " + u.cost + "."); return; }
+  state.coins -= u.cost;
+  state[id] = true;
+  state.totalUpgrades++;
+  setLog("Bought " + u.name + "! " + u.desc, 'good');
+  document.getElementById('shop-' + id).disabled = true;
+  updateUI();
+}
+
+function doAction(action) {
+  if (state.gameOver) return;
+
+  if (action == 'walk') {
+    var dist = rand(2, 4);
+    if (state.boots) dist += 1;
+    if (state.map) dist += 1;
+
+    var eCost = rand(12, 20);
+    if (state.strength) eCost -= 5;
+    if (eCost < 8) eCost = 8;
+
+    var fCost = rand(3, 5);
+
+    state.distance += dist;
+    if (state.distance > 100) state.distance = 100;
+    state.energy -= eCost;
+    if (state.energy < 0) state.energy = 0;
+    state.food -= fCost;
+    if (state.food < 0) state.food = 0;
+
+    var msg = "Day " + state.day + ": You walked " + dist + " miles. Energy -" + eCost + ", Food -" + fCost + ".";
+    setLog(msg);
+
+    if (Math.random() < 0.4) maybeEvent();
+    checkCheckpoints();
+    checkJournal();
+  }
+
+  else if (action == 'rest') {
+    var hGain = rand(15, 25);
+    if (state.medicine) hGain += 8;
+
+    var eGain = rand(20, 32);
+    if (state.fire) eGain += 8;
+
+    var fCost = rand(2, 4);
+
+    state.health += hGain;
+    if (state.health > 100) state.health = 100;
+    state.energy += eGain;
+    if (state.energy > 100) state.energy = 100;
+    state.food -= fCost;
+    if (state.food < 0) state.food = 0;
+
+    setLog("Day " + state.day + ": You rested. Health +" + hGain + ", Energy +" + eGain + ", Food -" + fCost + ".", 'good');
+  }
+
+  else if (action == 'forage') {
+    var foodAmt = rand(3, 6);
+    if (state.bag) foodAmt += 2;
+
+    var eCostForage = rand(8, 14);
+    state.energy -= eCostForage;
+    if (state.energy < 0) state.energy = 0;
+
+    var oldFood = state.food;
+    state.food = Math.min(state.food + foodAmt, FOOD_MAX);
+    var actual = state.food - oldFood;
+
+    if (actual < foodAmt) {
+      setLog("Day " + state.day + ": You foraged and found " + foodAmt + " food, but your pack is full. Food +" + actual + ", Energy -" + eCostForage + ".", 'good');
+    } else {
+      setLog("Day " + state.day + ": You foraged and found " + actual + " food. Energy -" + eCostForage + ".", 'good');
+    }
+  }
+
+  state.day++;
+  state.daysLeft--;
+  if (state.daysLeft < 0) state.daysLeft = 0;
+
+  var dailyFood = rand(0, 1);
+  state.food -= dailyFood;
+  if (state.food < 0) state.food = 0;
+
+  if (state.food <= 0) {
+    var dmg = rand(4, 8);
+    state.health -= dmg;
+    if (state.health < 0) state.health = 0;
+    setLog("You have no food. You are starving. Health -" + dmg + ".", 'bad');
+  }
+
+  if (state.energy <= 0) {
+    var dmg2 = rand(5, 10);
+    state.health -= dmg2;
+    if (state.health < 0) state.health = 0;
+    setLog("You are exhausted and can barely move. Health -" + dmg2 + ".", 'bad');
+  }
+
+  updateUI();
+  checkEnd();
+}
+
+function maybeEvent() {
+  var e = events[rand(0, events.length - 1)];
+  var result = e.effect(state);
+  if (state.coat && e.type == 'bad') {
+    setLog(e.text + " (Your coat helped protect you.) " + result, 'event');
+  } else {
+    setLog(e.text + " " + result, e.type == 'bad' ? 'bad' : (e.type == 'good' ? 'good' : 'event'));
+  }
+}
+
+function checkCheckpoints() {
+  if (state.version != 1) return;
+  while (state.cpNum < checkpoints.length) {
+    var cp = checkpoints[state.cpNum];
+    if (state.distance >= cp.pct) {
+      state.coins += 5;
+      setLog(cp.msg, 'reward');
+      state.cpNum++;
+      updateV1GoalText();
+    } else {
+      break;
+    }
+  }
+}
+
+function updateV1GoalText() {
+  var goals = [
+    "Reach 20 miles to earn coins",
+    "Reach 40 miles to earn more coins",
+    "Reach 60 miles",
+    "Reach 80 miles",
+    "Make it to the crystal!"
+  ];
+  var idx = state.cpNum;
+  if (idx >= goals.length) idx = goals.length - 1;
+  document.getElementById('v1-goal-text').textContent = goals[idx];
+}
+
+function checkJournal() {
+  if (state.version != 2) return;
+  if (state.day - state.lastMsg < 3) return;
+  if (state.journalIdx >= v2msgs.length) return;
+  document.getElementById('v2-msg-text').textContent = v2msgs[state.journalIdx];
+  setLog('"' + v2msgs[state.journalIdx] + '"', 'purpose');
+  state.journalIdx++;
+  state.lastMsg = state.day;
+}
+
+function updateUI() {
+  document.getElementById('val-day').textContent = state.day;
+  document.getElementById('val-health').textContent = state.health;
+  document.getElementById('val-energy').textContent = state.energy;
+  document.getElementById('val-food').textContent = state.food;
+
+  if (state.version == 1) {
+    document.getElementById('val-coins').textContent = state.coins;
+  }
+  document.getElementById('val-daysleft').textContent = state.daysLeft;
+
+  document.getElementById('dist-text').textContent = state.distance + " / 100 miles";
+  document.getElementById('dist-fill').style.width = state.distance + "%";
+
+  document.getElementById('health-text').textContent = state.health;
+  document.getElementById('health-fill').style.width = state.health + "%";
+  document.getElementById('health-fill').style.background = state.health < 30 ? '#ff2222' : '#cc4444';
+
+  document.getElementById('energy-text').textContent = state.energy;
+  document.getElementById('energy-fill').style.width = state.energy + "%";
+  document.getElementById('energy-fill').style.background = state.energy < 30 ? '#ff8800' : '#44aa44';
+
+  document.getElementById('food-text').textContent = state.food;
+  document.getElementById('food-fill').style.width = (state.food / FOOD_MAX * 100) + "%";
+  document.getElementById('food-fill').style.background = state.food < 4 ? '#ff4400' : '#cc8800';
+}
+
+function setLog(text, type) {
+  var box = document.getElementById('log-box');
+  var div = document.createElement('div');
+  div.className = 'log-line' + (type ? ' ' + type : '');
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function checkEnd() {
+  if (state.distance >= 100) {
+    state.gameOver = true;
+    state.result = 'win';
+    endGame();
+    return;
+  }
+  if (state.health <= 0) {
+    state.gameOver = true;
+    state.result = 'lose';
+    state.lossReason = "You collapsed before reaching the crystal. The village was not saved.";
+    endGame();
+    return;
+  }
+  if (state.daysLeft <= 0) {
+    state.gameOver = true;
+    state.result = 'lose';
+    state.lossReason = "The zombies arrived before you returned. The village was overrun.";
+    endGame();
+    return;
+  }
+}
+
+function recordBoredom() {
+  if (state.gameOver) return;
+  var t = getTime();
+  state.boredLog.push({ day: state.day, time: t });
+  var toast = document.getElementById('boredom-toast');
+  toast.textContent = "Boredom recorded at Day " + state.day + ", " + t;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2500);
+  setLog("[Boredom recorded at Day " + state.day + ", " + t + "]", 'event');
+}
+
+function endGame() {
+  document.getElementById('boredom-btn').disabled = true;
+
+  var win = state.result == 'win';
+  var v = state.version;
+  var timeStr = getTime();
+
+  var title, tagline;
+
+  if (win && v == 1) {
+    title = "You found the crystal!";
+    tagline = "You completed every checkpoint and made it to the end.";
+  } else if (win && v == 2) {
+    title = "The village is saved.";
+    tagline = "You made it. The zombies never came.";
+  } else {
+    title = "The journey is over.";
+    tagline = state.lossReason;
+  }
+
+  document.getElementById('end-title').textContent = title;
+  document.getElementById('end-tagline').textContent = tagline;
+
+  if (win && v == 2) {
+    document.getElementById('end-story-section').style.display = 'block';
+    document.getElementById('end-story-text').textContent =
+      "You returned to the village carrying the crystal. The protective shield went up just before the zombies reached the edge of town. " +
+      "Everyone was safe. You did not do it for coins or points. You did it because it was the only thing that mattered. " +
+      "The village remembered.";
+  } else {
+    document.getElementById('end-story-section').style.display = 'none';
+  }
+
+  var grid = document.getElementById('end-stats-grid');
+  grid.innerHTML = '';
+  var stats = [
+    ['Result', win ? 'Win' : 'Loss'],
+    ['Version', v == 1 ? 'Short-Term Rewards' : 'Long-Term Purpose'],
+    ['Days', state.day],
+    ['Time', timeStr],
+    ['Final Health', state.health],
+    ['Final Energy', state.energy],
+    ['Final Food', state.food],
+    ['Distance', state.distance + ' / 100 miles'],
+    ['Boredom Clicks', state.boredLog.length]
+  ];
+  for (var i = 0; i < stats.length; i++) {
+    var d = document.createElement('div');
+    d.className = 'stat-box';
+    d.innerHTML = stats[i][0] + ': <span>' + stats[i][1] + '</span>';
+    grid.appendChild(d);
+  }
+
+  if (v == 1) {
+    document.getElementById('v1-extras-section').style.display = 'block';
+    var v1grid = document.getElementById('v1-extras-grid');
+    v1grid.innerHTML = '';
+    var v1stats = [
+      ['Coins Earned', state.coins],
+      ['Upgrades Bought', state.totalUpgrades],
+      ['Checkpoints Hit', state.cpNum]
+    ];
+    for (var j = 0; j < v1stats.length; j++) {
+      var d2 = document.createElement('div');
+      d2.className = 'stat-box';
+      d2.innerHTML = v1stats[j][0] + ': <span>' + v1stats[j][1] + '</span>';
+      v1grid.appendChild(d2);
+    }
+  } else {
+    document.getElementById('v1-extras-section').style.display = 'none';
+  }
+
+  var blist = document.getElementById('end-boredom-list');
+  if (state.boredLog.length == 0) {
+    blist.textContent = 'None recorded.';
+  } else {
+    var lines = [];
+    for (var k = 0; k < state.boredLog.length; k++) {
+      lines.push("Click " + (k+1) + ": Day " + state.boredLog[k].day + " at " + state.boredLog[k].time);
+    }
+    blist.innerHTML = lines.join('<br>');
+  }
+
+  showScreen('end-screen');
+  window.scrollTo(0, 0);
+}
+
+function copyResults() {
+  var timeStr = getTime();
+  var text = "=== The Progress Paradox Results ===\n";
+  text += "Version: " + (state.version == 1 ? "Short-Term Rewards" : "Long-Term Purpose") + "\n";
+  text += "Result: " + (state.result == 'win' ? "Win" : "Loss") + "\n";
+  if (state.result == 'lose') text += "Loss Reason: " + state.lossReason + "\n";
+  text += "Days: " + state.day + "\n";
+  text += "Time: " + timeStr + "\n";
+  text += "Final Health: " + state.health + "\n";
+  text += "Final Energy: " + state.energy + "\n";
+  text += "Final Food: " + state.food + "\n";
+  text += "Distance: " + state.distance + " / 100 miles\n";
+  text += "Boredom Clicks: " + state.boredLog.length + "\n";
+  if (state.boredLog.length > 0) {
+    var btimes = [];
+    for (var i = 0; i < state.boredLog.length; i++) {
+      btimes.push("Day " + state.boredLog[i].day + " at " + state.boredLog[i].time);
+    }
+    text += "Boredom Times: " + btimes.join(", ") + "\n";
+  }
+  if (state.version == 1) {
+    text += "Coins: " + state.coins + "\n";
+    text += "Upgrades Bought: " + state.totalUpgrades + "\n";
+    text += "Checkpoints: " + state.cpNum + "\n";
+  }
+
+  navigator.clipboard.writeText(text).then(function() {
+    document.getElementById('copy-status').textContent = 'Copied!';
+    setTimeout(function() { document.getElementById('copy-status').textContent = ''; }, 3000);
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    document.getElementById('copy-status').textContent = 'Copied!';
+    setTimeout(function() { document.getElementById('copy-status').textContent = ''; }, 3000);
+  });
+}
+
+function restartGame() {
+  document.getElementById('boredom-btn').style.display = 'none';
+  document.getElementById('boredom-btn').disabled = false;
+  showScreen('start-screen');
+}
+
+</script>
+</body>
+</html>
